@@ -1,0 +1,11 @@
+.idea/
+__pycache__/
+*.pyc
+*.pem
+api_key_openai.txt
+tmp_imgs/*.png
+tmp_imgs/*.html
+
+
+config.yaml
+
