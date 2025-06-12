@@ -1,5 +1,4 @@
 import sqlalchemy
-import timeplus_connect
 from sqlalchemy import text
 from utils.get_config import config_data
 
