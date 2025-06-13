@@ -39,6 +39,7 @@ Please write SQL code to select the data needed according to the following requi
         end_prompt = """
 Remind:
 1. All code should be completed in a single markdown code block without any comments, explanations or cmds.
+2. please use table alias on all tables on select
 """
         final_prompt = question + pre_prompt + "\n" + data_prompt + end_prompt
 
