@@ -202,6 +202,218 @@ def pgsql_to_tp(engine, sql, tail="1"):
         conn.close()
 
 
+def pgsql_to_tp(engine, sql, tail="1"):
+    conn = engine.connect()
+    try:
+        # 获取表名映射 {table_name: tp_table_name} 和 {tp_table_name: table_id}
+        tables_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_name
+            FROM cdp_table
+        """))
+        table_name_map = {}
+        tp_table_to_id = {}
+        for table_row in tables_result:
+            table_id, table_name = table_row
+            tp_table_name = f"{table_name}_{table_id}_{tail}"
+            table_name_map[table_name] = tp_table_name
+            tp_table_to_id[tp_table_name] = table_id
+
+        # 获取列名映射 {table_id: {table_column_name: table_column_tm}}
+        columns_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_column_name, table_column_tm
+            FROM cdp_table_column
+        """))
+        column_map = {}
+        for col_row in columns_result:
+            table_id, col_name, col_tm = col_row
+            if table_id not in column_map:
+                column_map[table_id] = {}
+            column_map[table_id][col_name] = col_tm
+
+        # 第一步：替换表名
+        # 匹配格式：表名 或 "表名"
+        table_pattern = re.compile(r'(\b\w+\b|"\w+")')
+
+        def replace_table(match):
+            table = match.group(1)
+            clean_table = table.strip('"')
+            return table_name_map.get(clean_table, table)
+
+        new_sql = table_pattern.sub(replace_table, sql)
+
+        # 第二步：构建表别名映射（包含原始表名和别名）
+        alias_map = {}
+        # 匹配格式：表名 [AS] 别名 或 "表名" [AS] "别名"
+        alias_pattern = re.compile(
+            r'\b(?:FROM|JOIN)\s+(\w+|"\w+")(?:\s+(?:AS\s+)?(\w+|"\w+"))?',
+            re.IGNORECASE
+        )
+
+        # 找出所有表别名定义
+        for match in alias_pattern.finditer(new_sql):
+            table_ref = match.group(1)
+            alias = match.group(2)
+
+            # 清理引号获取物理表名
+            clean_table_ref = table_ref.strip('"')
+
+            # 只处理转换后的表名（包含_{table_id}_格式）
+            if re.search(r'_\d+_' + tail + r'\b', clean_table_ref):
+                # 物理表名自身作为引用
+                alias_map[clean_table_ref] = clean_table_ref
+
+                # 处理表别名
+                if alias:
+                    clean_alias = alias.strip('"')
+                    alias_map[clean_alias] = clean_table_ref
+
+        # 第三步：替换列名（处理三种格式）
+        # 1. 别名.列名  2. 表名.列名  3. "表名"."列名"
+        col_pattern = re.compile(
+            r'(\b\w+\b|"\w+")\.(\b\w+\b|"\w+")',
+            re.IGNORECASE
+        )
+
+        def replace_col(match):
+            table_ref = match.group(1)  # 表名或别名（可能带引号）
+            col_ref = match.group(2)  # 列名（可能带引号）
+
+            # 清理引号获取实体名
+            clean_table_ref = table_ref.strip('"')
+            clean_col_ref = col_ref.strip('"')
+
+            # 通过别名映射找到物理表名
+            physical_table = alias_map.get(clean_table_ref)
+            if not physical_table:
+                return match.group(0)  # 找不到物理表，不替换
+
+            # 从物理表名提取table_id
+            table_id = tp_table_to_id.get(physical_table)
+            if not table_id:
+                return match.group(0)  # 找不到table_id，不替换
+
+            # 获取列映射
+            col_mapping = column_map.get(table_id, {})
+            new_col = col_mapping.get(clean_col_ref, clean_col_ref)
+
+            # 保留原始格式的引号
+            quote_table = '"' if table_ref.startswith('"') else ''
+            quote_col = '"' if col_ref.startswith('"') else ''
+
+            return f"{quote_table}{clean_table_ref}{quote_table}.{quote_col}{new_col}{quote_col}"
+
+        # 替换所有带表引用的列
+        return col_pattern.sub(replace_col, new_sql)
+
+    except Exception as e:
+        print(f"Error in SQL transformation: {e}")
+        raise
+    finally:
+        conn.close()
+
+
+
+def pgsql_to_tp_2(engine, sql, tail="1"):
+    conn = engine.connect()
+    try:
+        # 获取表名映射 {table_name: tp_table_name} 和 {tp_table_name: table_id}
+        tables_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_name
+            FROM cdp_table
+        """))
+        table_name_map = {}
+        tp_table_to_id = {}
+        for table_row in tables_result:
+            table_id, table_name = table_row
+            tp_table_name = f"{table_name}_{table_id}_{tail}"
+            table_name_map[table_name] = tp_table_name
+            tp_table_to_id[tp_table_name] = table_id
+
+        # 获取列名映射 {table_id: {table_column_name: table_column_tm}}
+        columns_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_column_name, table_column_tm
+            FROM cdp_table_column
+        """))
+        column_map = {}
+        for col_row in columns_result:
+            table_id, col_name, col_tm = col_row
+            if table_id not in column_map:
+                column_map[table_id] = {}
+            column_map[table_id][col_name] = col_tm
+
+        # 第一步：替换表名
+        # 匹配格式：表名 或 "表名" 或带模式的表名
+        table_pattern = re.compile(r'(\b\w+\b|"\w+")(?=\s*(?:AS\s+\w+)?[, \n)])', re.IGNORECASE)
+
+        def replace_table(match):
+            table = match.group(1)
+            clean_table = table.strip('"')
+            return table_name_map.get(clean_table, table)
+
+        new_sql = table_pattern.sub(replace_table, sql)
+
+        # 第二步：构建表别名映射
+        alias_map = {}
+        # 匹配格式：表名 [AS] 别名 (包括带后缀的表名)
+        alias_pattern = re.compile(
+            r'(?:FROM|JOIN)\s+(\w+(?:_\d+_' + re.escape(tail) + r')?)\s+(?:AS\s+)?(\w+)?',
+            re.IGNORECASE
+        )
+
+        # 找出所有表别名定义
+        for match in alias_pattern.finditer(new_sql):
+            table_ref = match.group(1)
+            alias = match.group(2)
+
+            # 如果表名是转换后的表名格式
+            if table_ref in tp_table_to_id:
+                # 表别名映射到物理表名
+                if alias:
+                    alias_map[alias] = table_ref
+                # 表名自身也作为引用
+                alias_map[table_ref] = table_ref
+
+        # 第三步：替换列名
+        # 匹配格式：别名.列名 或 表名.列名 (包括带后缀的表名)
+        col_pattern = re.compile(
+            r'(\b\w+\b)\s*\.\s*(\b\w+\b)',
+            re.IGNORECASE
+        )
+
+        def replace_col(match):
+            table_ref = match.group(1)
+            col_ref = match.group(2)
+
+            # 通过别名找到物理表名
+            physical_table = alias_map.get(table_ref)
+            if not physical_table:
+                # 直接检查是否已经是转换后的表名
+                if table_ref in tp_table_to_id:
+                    physical_table = table_ref
+                else:
+                    return match.group(0)  # 找不到物理表，不替换
+
+            # 从物理表名提取table_id
+            table_id = tp_table_to_id.get(physical_table)
+            if not table_id:
+                return match.group(0)  # 找不到table_id，不替换
+
+            # 获取列映射
+            col_mapping = column_map.get(table_id, {})
+            new_col = col_mapping.get(col_ref, col_ref)
+
+            return f"{table_ref}.{new_col}"
+
+        # 替换所有带表引用的列
+        return col_pattern.sub(replace_col, new_sql)
+
+    except Exception as e:
+        print(f"Error in SQL transformation: {e}")
+        raise
+    finally:
+        conn.close()
+
+
 def restore_column_names(engine, df, tail="1"):
     """
     Restores original column names in the DataFrame by reversing the transformations done by pgsql_to_tp.
@@ -281,3 +493,89 @@ def restore_column_names(engine, df, tail="1"):
         conn.close()
 
 
+def restore_column_names_2(engine, df, sql, tail="1"):
+    """
+    Restores original column names using SQL query context
+    Args:
+        engine: SQLAlchemy engine
+        df: Result DataFrame
+        sql: Original SQL query (before transformation)
+        tail: Tail suffix used in transformation
+    Returns:
+        DataFrame with restored column names
+    """
+    conn = engine.connect()
+    try:
+        # Step 1: Extract aliases from original SQL
+        alias_pattern = re.compile(
+            r'(?:FROM|JOIN)\s+(\w+)(?:\s+(?:AS\s+)?(\w+))?',
+            re.IGNORECASE
+        )
+        alias_map = {}  # {alias: real_table}
+        table_refs = {}  # {table_name: table_id}
+
+        # Parse aliases and table references
+        for match in alias_pattern.finditer(sql):
+            table_name = match.group(1)
+            alias = match.group(2) or table_name
+            alias_map[alias] = table_name
+
+        # Step 2: Get table mappings
+        tables_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_name FROM cdp_table
+        """))
+        for table_id, table_name in tables_result:
+            table_refs[table_name] = table_id
+
+        # Step 3: Get column mappings
+        columns_result = conn.execute(sqlalchemy.text("""
+            SELECT table_id, table_column_name, table_column_tm 
+            FROM cdp_table_column
+        """))
+        col_map = {}  # {(table_id, tm_col): orig_col}
+        for table_id, orig_col, tm_col in columns_result:
+            col_map[(table_id, tm_col)] = orig_col
+
+        # Step 4: Process DataFrame columns
+        new_columns = []
+        for col in df.columns:
+            parts = col.split('.')
+
+            # Case 1: Qualified column (alias.column)
+            if len(parts) == 2:
+                alias, tm_col = parts
+                if alias in alias_map:
+                    table_name = alias_map[alias]
+                    table_id = table_refs.get(table_name)
+                    key = (table_id, tm_col)
+                    if key in col_map:
+                        new_columns.append(f"{alias}.{col_map[key]}")
+                    else:
+                        new_columns.append(col)
+                else:
+                    new_columns.append(col)
+
+            # Case 2: Unqualified column
+            else:
+                col_name = parts[0]
+                found = False
+                # Try to find in any table
+                for table_name, table_id in table_refs.items():
+                    key = (table_id, col_name)
+                    if key in col_map:
+                        new_columns.append(col_map[key])
+                        found = True
+                        break
+                if not found:
+                    new_columns.append(col_name)
+
+        # Apply new column names
+        df = df.copy()
+        df.columns = new_columns
+        return df
+
+    except Exception as e:
+        print(f"Error restoring columns: {e}")
+        return df  # Return original on error
+    finally:
+        conn.close()
