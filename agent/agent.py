@@ -16,8 +16,6 @@ from .utils.final_output_parse import df_to_markdown, wrap_html_url_with_markdow
 from .utils.final_output_parse import wrap_png_url_with_markdown_image, is_png_url, is_iframe_tag
 from .utils.pd_to_walker import pd_to_walker
 
-from .tools.map.population_api import get_population_api_info
-from .tools.custom_tools_def import get_api_result
 
 IMPORTANT_MODULE = ["import pandas as pd", "import math", "import numpy as np", "import geopy"]
 
@@ -36,15 +34,6 @@ def get_cot_prompt(question):
     if function_info == "solved":
         return "solved", rag_ans, []
     print(function_info)
-
-    api_info = ""
-    api_prompt = ""
-    if get_api_result in function_set:
-        api_info = get_population_api_info(question, llm)
-        api_prompt = f""" 
-        Here is the APIs you can call with the provided function:
-        """
-        print(api_info)
 
     pre_prompt = """ 
 Please use the following functions to solve the problem.
@@ -81,7 +70,6 @@ def func():
 """
     cot_prompt = "question:" + question + knowledge + database + pre_prompt + \
                  function_prompt + str(function_info) + \
-                 api_prompt + str(api_info) + \
                  example_code
     return cot_prompt, rag_ans, function_import
 

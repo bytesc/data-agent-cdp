@@ -6,6 +6,7 @@ api_key_openai.txt
 tmp_imgs/*.png
 tmp_imgs/*.html
 
+agent_log.txt
 
 config.yaml
 
