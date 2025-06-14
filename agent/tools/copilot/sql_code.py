@@ -3,6 +3,7 @@ import logging
 from .utils.call_llm_test import call_llm
 from .utils.parse_output import parse_generated_sql_code
 from .utils.pgsql_to_tp import get_tp_table_create
+from .utils.read_db import execute_sql
 
 # tables = ['class', 'lesson_info',
 #           'semester', 'stu_detail', 'stu_grade',
@@ -39,12 +40,11 @@ Please write SQL code to select the data needed according to the following requi
         end_prompt = """
 Remind:
 1. All code should be completed in a single markdown code block without any comments, explanations or cmds.
-2. please use table alias on all tables on select
 """
         final_prompt = question + pre_prompt + "\n" + data_prompt + end_prompt
 
         ans = call_llm(final_prompt + error_msg, llm)
-        print("sql################################3")
+        print("sql################################")
         print(ans.content)
         result_sql = parse_generated_sql_code(ans.content)
         if result_sql is None:
@@ -61,4 +61,48 @@ without any additional comments, explanations or cmds !!!
             return result_sql
 
 
+from .utils.pgsql_to_tp import get_table_name_dict,filter_identical_mappings
+def map_sql_code(sql, llm, engine, retries=3):
+    retries_times = 0
+    error_msg = ""
+    while retries_times <= retries:
+        retries_times += 1
+        pre_prompt = """
+    Please replace some column names in the sql code.
+    column names map format:
+    {table_name: {{original_table_column1: target_table_column1},{original_table_column2: target_table_column2}, ...}, ...}
+    column names map:
+    """
+        map_prompt = filter_identical_mappings(get_table_name_dict(engine))
 
+        end_prompt = """
+    Remind:
+    1. All code should be completed in a single markdown code block without any comments, explanations or cmds.
+    2. Output column names should be readable, you can add `AS` on final select.
+    """
+        final_prompt = pre_prompt + str(map_prompt) + "\n```sql\n"+sql+"\n```\n" + end_prompt
+
+
+        ans = call_llm(final_prompt + error_msg, llm)
+        print("sql################################3")
+        print(ans.content)
+        result_sql = parse_generated_sql_code(ans.content)
+        if result_sql is None:
+            error_msg = """
+    code should only be in a md code block: 
+    ```sql
+    # some sql code
+    ```
+    without any additional comments, explanations or cmds !!!
+    """
+            print(ans + "No code was generated.")
+            continue
+        else:
+            return result_sql
+
+
+def query_tp_database_func(question, llm, engine):
+    sql = get_sql_code(question, None, llm, engine)
+    tp_sql = map_sql_code(sql, llm, engine)
+    df = execute_sql(tp_sql.replace(';', ''))
+    return df

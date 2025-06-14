@@ -3,6 +3,7 @@ import sqlalchemy
 
 from agent.utils.get_config import config_data
 from agent.utils.llm_access.LLM import get_llm
+from .copilot.sql_code import query_tp_database_func
 
 DATABASE_URL = config_data['pgsql']
 engine = sqlalchemy.create_engine(DATABASE_URL)
@@ -11,7 +12,7 @@ STATIC_URL = config_data['static_path']
 
 llm = get_llm()
 
-from .copilot.python_code import draw_graph_func
+from .copilot.python_code import draw_graph_func, draw_echart_block_func, draw_echart_file_func
 
 
 def draw_graph(question: str, data: pd.DataFrame) -> str:
@@ -43,5 +44,26 @@ def draw_graph(question: str, data: pd.DataFrame) -> str:
     return result
 
 
+def draw_echart_block(question: str, data: pd.DataFrame) -> str:
+    """
+
+    """
+    result = draw_echart_block_func(question, data, llm)
+    return result
 
 
+def draw_echart_file(question: str, data: pd.DataFrame) -> str:
+    """
+
+    """
+    result = draw_echart_file_func(question, data, llm)
+    result = STATIC_URL + result[2:]
+    return result
+
+
+def query_database(question: str) -> pd.DataFrame:
+    """
+
+    """
+    df = query_tp_database_func(question, llm, engine)
+    return df

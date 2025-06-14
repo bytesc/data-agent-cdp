@@ -151,6 +151,23 @@ def get_table_name_dict(engine, tail="1"):
         conn.close()
 
 
+def filter_identical_mappings(table_dict):
+    filtered_dict = {}
+
+    for table_name, column_map in table_dict.items():
+        filtered_columns = {}
+
+        for col_name, col_tm in column_map.items():
+            if col_name != col_tm:  # Only keep if key and value are different
+                filtered_columns[col_name] = col_tm
+
+        # Only add the table if it has any filtered columns
+        if filtered_columns:
+            filtered_dict[table_name] = filtered_columns
+
+    return filtered_dict
+
+
 import re
 from sqlparse import parse, format
 from sqlparse.tokens import Name, Wildcard

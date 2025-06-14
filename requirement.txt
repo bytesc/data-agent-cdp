@@ -12,6 +12,7 @@ pandas==2.2.2
 Pillow==9.4.0
 matplotlib==3.8.3
 pygwalker==0.4.9.13
+pyecharts==2.0.8
 
 timeplus==1.4.1
 timeplus-connect==0.8.17

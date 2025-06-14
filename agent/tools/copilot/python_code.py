@@ -1,6 +1,7 @@
+from .examples.ask_ai_for_echart import get_ask_echart_file_prompt, get_ask_echart_block_prompt
 from .utils import call_llm_test
 
-from .utils.parse_output import parse_generated_python_code
+from .utils.parse_output import parse_generated_python_code, assert_html_file, assert_str
 
 from .utils.code_executor import execute_py_code_with_data
 from .utils.parse_output import assert_png_file
@@ -46,6 +47,8 @@ Remind:
     while retries_times <= retries:
         retries_times += 1
         ans = call_llm_test.call_llm(final_prompt + error_msg, llm)
+        print("python################################")
+        print(ans.content)
         ans_code = parse_generated_python_code(ans.content)
         if ans_code is not None:
             return ans_code
@@ -89,6 +92,8 @@ Remind:
     while retries_times <= retries:
         retries_times += 1
         ans = call_llm_test.call_llm(final_prompt + error_msg, llm)
+        print("python################################")
+        print(ans.content)
         ans_code = parse_generated_python_code(ans.content)
         if ans_code is not None:
             return ans_code
@@ -118,6 +123,45 @@ def draw_graph_func(question, data, llm, retries=2):
                 continue
             try:
                 result = execute_py_code_with_data(code, data, assert_png_file)
+                return result
+            except Exception as e:
+                err_msg = str(e) + "\n```python\n" +code+"\n```\n"
+                print(e)
+                exp = e
+                continue
+    return None
+
+
+def draw_echart_file_func(question, data, llm, retries=2):
+    exp = None
+    for i in range(retries):
+        question = get_ask_echart_file_prompt(question)
+        err_msg = ""
+        for j in range(retries):
+            code = get_py_code_with_data(question + err_msg, data, llm)
+            if code is None:
+                continue
+            try:
+                result = execute_py_code_with_data(code, data, assert_html_file)
+                return result
+            except Exception as e:
+                err_msg = str(e) + "\n```python\n" +code+"\n```\n"
+                print(e)
+                exp = e
+                continue
+    return None
+
+def draw_echart_block_func(question, data, llm, retries=2):
+    exp = None
+    for i in range(retries):
+        question = get_ask_echart_block_prompt(question)
+        err_msg = ""
+        for j in range(retries):
+            code = get_py_code_with_data(question + err_msg, data, llm)
+            if code is None:
+                continue
+            try:
+                result = execute_py_code_with_data(code, data, assert_str)
                 return result
             except Exception as e:
                 err_msg = str(e) + "\n```python\n" +code+"\n```\n"
