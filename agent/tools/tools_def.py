@@ -61,9 +61,31 @@ def draw_echart_file(question: str, data: pd.DataFrame) -> str:
     return result
 
 
-def query_database(question: str) -> pd.DataFrame:
+def query_database(question: str, df_cols: str | list = None) -> pd.DataFrame:
+    """
+    query_database(question: str, df_cols: str | list = None) -> pd.DataFrame:
+    Query the database using natural language question. Can not query anything not included in the database content!!!
+    Returns the query results in pandas DataFrame.
+
+    Args:
+    - question (str): Natural language question, table names can be included in the question.
+    - df_cols (str|list): The columns' names of the DataFrame(e.g. "uid, username, stu_num").
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the results of the database query.
+        The DataFrame includes the columns provided in df_cols(the second args)
+
+    Example:
+    ```python
+        ans_df = query_database('Select the grades of Jane Smith, use table stu_grade ,stu_info, class_info', df_cols='lesson_id, lesson_name, grade')
+        # Output(pd.DataFrame):
+        #        lesson_id lesson_name grade
+        # 0        001  Mathematics     99.00
+        # 1        002      English     88.50
+        # 2        003     Physics    65.00
+        # ... and so on(the structure of the output DataFrame id based on df_cols(the second input args))
+    ```
     """
 
-    """
-    df = query_tp_database_func(question, llm, engine)
+    df = query_tp_database_func(question,df_cols, llm, engine)
     return df

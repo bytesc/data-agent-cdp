@@ -68,7 +68,8 @@ def map_sql_code(sql, llm, engine, retries=3):
     while retries_times <= retries:
         retries_times += 1
         pre_prompt = """
-    Please replace some column names in the sql code.
+    Please replace some column names in the sql code. 
+    From given original_table_column to target_table_column and keep the SQL semantics unchanged.
     column names map format:
     {table_name: {{original_table_column1: target_table_column1},{original_table_column2: target_table_column2}, ...}, ...}
     column names map:
@@ -78,10 +79,10 @@ def map_sql_code(sql, llm, engine, retries=3):
         end_prompt = """
     Remind:
     1. All code should be completed in a single markdown code block without any comments, explanations or cmds.
-    2. Output column names should be readable, you can add `AS` on final select.
+    2. The SQL given can be complicated and have certain functions, please replace all original_table_column with target_table_column and keep the SQL semantics unchanged.
+    3. Output column names should be readable, you can add `AS` on final select.
     """
         final_prompt = pre_prompt + str(map_prompt) + "\n```sql\n"+sql+"\n```\n" + end_prompt
-
 
         ans = call_llm(final_prompt + error_msg, llm)
         print("sql################################3")
@@ -101,8 +102,8 @@ def map_sql_code(sql, llm, engine, retries=3):
             return result_sql
 
 
-def query_tp_database_func(question, llm, engine):
-    sql = get_sql_code(question, None, llm, engine)
+def query_tp_database_func(question, df_cols, llm, engine):
+    sql = get_sql_code(question, df_cols, llm, engine)
     tp_sql = map_sql_code(sql, llm, engine)
     df = execute_sql(tp_sql.replace(';', ''))
     return df
