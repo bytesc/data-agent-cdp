@@ -58,7 +58,7 @@ print(table_dict)
 #
 # print(df)
 
-question = "查询昵称为邓丽君的用户的邮箱归属地"
+question = "查询昵称为邓丽君的用户的邮箱归属城市"
 df = query_database(question)
 print(df)
 echart = draw_echart_file(question, df)

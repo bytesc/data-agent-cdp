@@ -1,12 +1,13 @@
 import httpx
 from utils.get_config import config_data
 
-from pywebio.input import input, TEXT, textarea
-from pywebio.output import put_text, put_html, put_markdown, clear, put_loading
+from pywebio.input import input, TEXT, textarea, actions
+from pywebio.output import put_text, put_html, put_markdown, clear, put_loading, put_table, put_error, put_info, \
+    put_warning
 from pywebio import start_server
 
 
-def ai_agent_api(question: str, path: str = "/ask-agent/", url="http://127.0.0.1:" + str(config_data["server_port"])):
+def ai_agent_api(question: str, path: str = "/api/", url="http://127.0.0.1:" + str(config_data["server_port"])):
     # 使用 httpx 发送请求到另一个服务器的 /ask-agent/ 接口
     with httpx.Client(timeout=180.0) as client:
         try:
@@ -23,38 +24,83 @@ def ai_agent_api(question: str, path: str = "/ask-agent/", url="http://127.0.0.1
             return None
 
 
+def display_editable_step(title, default_content=""):
+    put_markdown(f"## {title}")
+    return textarea("可直接编辑内容:", value=default_content, rows=10)
+
+
 def main():
-    ans = None
-    question_list = ""
-    while 1:
-        # put_text("Ask your question to the AI Agent:")
-        question = textarea("Enter your question here:", type=TEXT, rows=2)
-        put_markdown("## " + question)
-        question_list = question_list + question
+    history = []
+    while True:
+        clear()
+        put_markdown("## 数据分析流程")
 
-        req = question
-        if ans:
-            with put_loading():
-                response = ai_agent_api(ans, "/api/agent-summary/")
-                summary = response
-                put_markdown("## Ans Summary")
-                put_markdown(summary, sanitize=False)
-                req = question_list + """
-                This is the summary of the last conversation:
-                            """ + summary
+        # 1. 获取用户问题
+        question = textarea("请输入您的问题:", rows=3)
+        if not question:
+            continue
+        put_markdown(question)
 
+        # 2. 获取原始SQL
+        put_markdown("正在获取原始SQL...")
         with put_loading():
-            print(req)
-            response = ai_agent_api(req, "/api/ask-agent/")
-            ans = response
-        # print(response)
-        # 检查响应并显示结果
-        if response:
-            put_markdown(response, sanitize=False)
-        else:
-            put_text("Failed to get a response from the AI Agent.")
+            raw_sql_res = ai_agent_api(question, "/api/get-raw-sql/")
+
+        raw_sql = raw_sql_res
+        raw_sql = display_editable_step("1. 原始SQL", raw_sql)
+
+        put_markdown("```sql\n"+raw_sql+"\n```")
+
+        # 3. 翻译SQL
+        put_markdown("正在翻译SQL...")
+        with put_loading():
+            translate_res = ai_agent_api(raw_sql, "/api/translate-sql/")
+
+        translated_sql = translate_res
+        translated_sql = display_editable_step("2. 翻译后的SQL", translated_sql)
+
+        put_markdown("```sql\n" + translated_sql + "\n```")
+
+        # 4. 执行SQL
+        put_markdown("正在执行SQL...")
+        with put_loading():
+            exec_res = ai_agent_api(translated_sql, "/api/exe-sql/")
+
+        exec_result = exec_res
+        put_markdown("3. SQL执行结果")
+        put_markdown(str(exec_res))
+
+        # 5. 获取可视化
+        put_markdown("正在生成可视化...")
+        with put_loading():
+            vis_res = ai_agent_api(exec_result, "/api/get-pygwalker/")
+
+        if vis_res:
+            put_markdown("## 4. 数据可视化")
+            put_markdown(vis_res)
+
+        # 记录历史
+        history.append({
+            "question": question,
+            "raw_sql": raw_sql,
+            "translated_sql": translated_sql,
+            "exec_result": exec_result
+        })
+
+        if actions("", buttons=[{'label': '新的查询', 'value': 'new'}, {'label': '查看历史', 'value': 'history'},
+                                {'label': '退出', 'value': 'exit'}]) != 'new':
+            break
+
+    # 显示历史记录
+    if history:
+        clear()
+        put_markdown("## 历史查询记录")
+        put_table([
+            ['时间', '问题', '原始SQL', '执行结果'],
+            *[[h['time'], h['question'], h['raw_sql'][:50] + "...", h['exec_result']] for h in history]
+        ])
 
 
 # 启动 PyWebIO 应用
 if __name__ == '__main__':
-    start_server(main, port=8010)
+    start_server(main, port=8016, debug=True)

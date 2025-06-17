@@ -1,5 +1,6 @@
 import mimetypes
 
+import pandas as pd
 import sqlalchemy
 import uvicorn
 import os
@@ -10,6 +11,8 @@ from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 from agent.cot_chat import get_cot_chat
+from agent.tools.tools_def import query_database, get_raw_sql, translate_tp_sql, exe_tp_sql
+from agent.utils.pd_to_walker import pd_to_walker
 from utils.get_config import config_data
 
 from agent.agent import exe_cot_code, get_cot_code, cot_agent
@@ -42,6 +45,8 @@ async def read_static_file(request: Request, filename: str):
 class AgentInput(BaseModel):
     question: str
 
+class AgentInputDict(BaseModel):
+    question: dict
 
 class ReviewInput(BaseModel):
     question: str
@@ -176,6 +181,108 @@ async def cot_chat(request: Request, user_input: AgentInput):
         }
     return JSONResponse(content=processed_data)
 
+
+
+@app.post("/api/query-db/")
+async def query_db(request: Request, user_input: AgentInput):
+    ans = query_database(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+@app.post("/api/get-raw-sql/")
+async def get_sql(request: Request, user_input: AgentInput):
+    ans = get_raw_sql(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+@app.post("/api/translate-sql/")
+async def translate_sql(request: Request, user_input: AgentInput):
+    ans = translate_tp_sql(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+@app.post("/api/exe-sql/")
+async def exe_sql(request: Request, user_input: AgentInput):
+    ans = exe_tp_sql(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
+@app.post("/api/get-pygwalker/")
+async def get_pygwalker(request: Request, user_input: AgentInputDict):
+    df = pd.DataFrame.from_dict(user_input.question)
+    ans = pd_to_walker(df)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
 
 
 if __name__ == "__main__":

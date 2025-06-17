@@ -12,8 +12,6 @@ from .tools.get_function_info import get_function_info
 
 from .tools.copilot.utils.call_llm_test import call_llm
 
-from .tools.map.population_api import get_population_api_info
-from .tools.custom_tools_def import get_api_result
 
 
 def get_cot_chat_prompt(question):
@@ -33,12 +31,6 @@ def get_cot_chat_prompt(question):
 
     api_info = ""
     api_prompt = ""
-    if get_api_result in function_set:
-        api_info = get_population_api_info(question, llm)
-        api_prompt = f""" 
-        Here is the APIs you can call with the provided function:
-        """
-        print(api_info)
 
     pre_prompt = """ 
 
