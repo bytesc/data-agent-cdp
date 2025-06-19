@@ -75,12 +75,15 @@ def map_sql_code(sql, llm, engine, retries=3):
     column names map:
     """
         map_prompt = filter_identical_mappings(get_table_name_dict(engine))
+        print(map_prompt)
 
         end_prompt = """
     Remind:
     1. All code should be completed in a single markdown code block without any comments, explanations or cmds.
     2. The SQL given can be complicated and have certain functions, please replace all original_table_column with target_table_column and keep the SQL semantics unchanged.
     3. Output column names should be readable, you can add `AS` on final select.
+    4. Some columns may not appear in the original_table_columns, you do not need to replace them, do not change the columns not in map.
+    5. Return the original sql if no need to transfer.
     """
         final_prompt = pre_prompt + str(map_prompt) + "\n```sql\n"+sql+"\n```\n" + end_prompt
 
