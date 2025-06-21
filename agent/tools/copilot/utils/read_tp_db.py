@@ -23,7 +23,7 @@ def execute_tp_sql(sql):
         df = pd.read_sql_query(text(sql), connection)
         return df
 
-def get_tables():
+def get_tp_tables():
     with tp_engine.connect() as connection:
         # 查询 Timeplus 中的表名
         # 根据 Timeplus 的实际系统表调整此查询
