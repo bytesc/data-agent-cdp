@@ -3,7 +3,7 @@ import logging
 from .utils.call_llm_test import call_llm
 from .utils.parse_output import parse_generated_sql_code
 from .utils.pgsql_to_tp import get_tp_table_create
-from .utils.read_db import execute_sql
+from .utils.read_db import execute_tp_sql
 
 # tables = ['class', 'lesson_info',
 #           'semester', 'stu_detail', 'stu_grade',
@@ -108,5 +108,5 @@ def map_sql_code(sql, llm, engine, retries=3):
 def query_tp_database_func(question, df_cols, llm, engine):
     sql = get_sql_code(question, df_cols, llm, engine)
     tp_sql = map_sql_code(sql, llm, engine)
-    df = execute_sql(tp_sql.replace(';', ''))
+    df = execute_tp_sql(tp_sql.replace(';', ''))
     return df

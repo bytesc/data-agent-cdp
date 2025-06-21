@@ -1,7 +1,8 @@
 import sqlalchemy
 
+from agent.tools.copilot.utils.read_db import get_tables
 
-def get_tp_table_create(engine, tail="1"):
+def get_tp_table_create(engine, tail="1", table_list=get_tables()):
     conn = engine.connect()
     try:
         # 获取所有表定义
@@ -14,6 +15,12 @@ def get_tp_table_create(engine, tail="1"):
 
         for table_row in tables_result:
             table_id, table_name, table_alias, table_business_type = table_row
+
+            tp_table_name = f"{table_name}_{table_id}_{tail}"
+
+            # 检查表是否存在于table_list中
+            if table_list and tp_table_name not in table_list:
+                continue
 
             # 获取表的列定义
             columns_result = conn.execute(sqlalchemy.text("""

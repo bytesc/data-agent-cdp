@@ -11,7 +11,8 @@ from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 from agent.cot_chat import get_cot_chat
-from agent.tools.tools_def import query_database, get_raw_sql, translate_tp_sql, exe_tp_sql
+from agent.tools.tools_def import query_database, get_raw_sql, translate_tp_sql, exe_tp_sql, draw_graph, \
+    draw_echart_file
 from agent.utils.pd_to_walker import pd_to_walker
 from utils.get_config import config_data
 
@@ -46,7 +47,8 @@ class AgentInput(BaseModel):
     question: str
 
 class AgentInputDict(BaseModel):
-    question: dict
+    question: str
+    data: dict
 
 class ReviewInput(BaseModel):
     question: str
@@ -264,9 +266,51 @@ async def exe_sql(request: Request, user_input: AgentInput):
     return JSONResponse(content=processed_data)
 
 
+@app.post("/api/get-graph/")
+async def get_graph(request: Request, user_input: AgentInputDict):
+    df = pd.DataFrame.from_dict(user_input.data)
+    ans = draw_graph(user_input.question, df)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
+@app.post("/api/get-echart/")
+async def get_echart(request: Request, user_input: AgentInputDict):
+    df = pd.DataFrame.from_dict(user_input.data)
+    ans = draw_echart_file(user_input.question, df)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
 @app.post("/api/get-pygwalker/")
 async def get_pygwalker(request: Request, user_input: AgentInputDict):
-    df = pd.DataFrame.from_dict(user_input.question)
+    df = pd.DataFrame.from_dict(user_input.data)
     ans = pd_to_walker(df)
     if ans:
         processed_data = {

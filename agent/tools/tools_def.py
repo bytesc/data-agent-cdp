@@ -4,7 +4,7 @@ import sqlalchemy
 from agent.utils.get_config import config_data
 from agent.utils.llm_access.LLM import get_llm
 from .copilot.sql_code import query_tp_database_func, get_sql_code, map_sql_code
-from .copilot.utils.read_db import execute_sql
+from .copilot.utils.read_db import execute_tp_sql
 
 DATABASE_URL = config_data['pgsql']
 engine = sqlalchemy.create_engine(DATABASE_URL)
@@ -103,5 +103,5 @@ def translate_tp_sql(sql: str) -> str:
 
 
 def exe_tp_sql(tp_sql: str) -> pd.DataFrame:
-    df = execute_sql(tp_sql.replace(';', ''))
+    df = execute_tp_sql(tp_sql.replace(';', ''))
     return df.to_dict()  # df.to_json()
