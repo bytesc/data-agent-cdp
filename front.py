@@ -70,15 +70,6 @@ def main():
         put_markdown("3. SQL执行结果")
         put_markdown(str(exec_res))
 
-        # 5. 获取可视化
-        put_markdown("正在生成可视化...")
-        with put_loading():
-            vis_res = ai_agent_api(exec_result, "/api/get-pygwalker/")
-
-        if vis_res:
-            put_markdown("## 4. 数据可视化")
-            put_markdown(vis_res)
-
         # 记录历史
         history.append({
             "question": question,

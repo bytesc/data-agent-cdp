@@ -1,8 +1,8 @@
 import sqlalchemy
 
-from agent.tools.copilot.utils.read_db import get_tables
+from agent.tools.copilot.utils.read_tp_db import get_tp_tables
 
-def get_tp_table_create(engine, tail="1", table_list=get_tables()):
+def get_tp_table_create(engine, tail="1", table_list=get_tp_tables()):
     conn = engine.connect()
     try:
         # 获取所有表定义
@@ -174,16 +174,6 @@ def filter_identical_mappings(table_dict):
 
     return filtered_dict
 
-
-import re
-from sqlparse import parse, format
-from sqlparse.tokens import Name, Wildcard
-from sqlparse.sql import Identifier, IdentifierList, Token
-
-
-def pgsql_to_tp(engine, sql):
-   pass
-    # return transformed_sql
 
 
 

@@ -8,7 +8,7 @@ tp_engine = sqlalchemy.create_engine(config_data["timeplus"])
 
 from agent.tools.copilot.utils.pgsql_to_tp import get_tp_table_create, pgsql_to_tp,\
      get_table_name_dict, filter_identical_mappings
-from agent.tools.copilot.utils.read_db import execute_tp_sql
+from agent.tools.copilot.utils.read_tp_db import execute_tp_sql
 
 table_dict = filter_identical_mappings(get_table_name_dict(pg_engine))
 print(table_dict)

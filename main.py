@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 from agent.cot_chat import get_cot_chat
-from agent.tools.tools_def import query_database, get_raw_sql, translate_tp_sql, exe_tp_sql, draw_graph, \
-    draw_echart_file
+from agent.tools.custom_tools_def import exe_tp_sql, translate_tp_sql, get_raw_sql
+from agent.tools.tools_def import query_database, draw_graph, draw_echart_file
 from agent.utils.pd_to_walker import pd_to_walker
 from utils.get_config import config_data
 
@@ -208,7 +208,6 @@ async def query_db(request: Request, user_input: AgentInput):
 @app.post("/api/get-raw-sql/")
 async def get_sql(request: Request, user_input: AgentInput):
     ans = get_raw_sql(user_input.question)
-    print(ans)
     if ans:
         processed_data = {
             "question": user_input.question,
@@ -228,7 +227,6 @@ async def get_sql(request: Request, user_input: AgentInput):
 @app.post("/api/translate-sql/")
 async def translate_sql(request: Request, user_input: AgentInput):
     ans = translate_tp_sql(user_input.question)
-    print(ans)
     if ans:
         processed_data = {
             "question": user_input.question,
