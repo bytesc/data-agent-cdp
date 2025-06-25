@@ -1,5 +1,6 @@
+import json
 import mimetypes
-
+from datetime import datetime, date
 import pandas as pd
 import sqlalchemy
 import uvicorn
@@ -333,12 +334,20 @@ async def translate_tp_sql_api(request: Request, user_input: AgentInput):
 async def exe_tp_sql_api(request: Request, user_input: AgentInput):
     ans = exe_tp_sql(user_input.question)
     print(ans)
-    if ans:
+
+    def json_serial(obj):
+        if isinstance(obj, (datetime, pd.Timestamp)):
+            return obj.isoformat()
+        elif isinstance(obj, date):
+            return obj.isoformat()
+        return obj
+    if ans is not None:
+        ans = json.loads(json.dumps(ans, default=json_serial))
         processed_data = {
-            "question": user_input.question,
-            "ans": ans,
-            "type": "success",
-            "msg": "处理成功"
+                "question": user_input.question,
+                "ans": ans,
+                "type": "success",
+                "msg": "处理成功"
         }
     else:
         processed_data = {
@@ -347,6 +356,7 @@ async def exe_tp_sql_api(request: Request, user_input: AgentInput):
             "type": "error",
             "msg": "处理失败，请换个问法吧"
         }
+
     return JSONResponse(content=processed_data)
 
 
