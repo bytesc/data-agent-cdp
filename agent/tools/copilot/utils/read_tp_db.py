@@ -13,10 +13,20 @@ tp_engine = sqlalchemy.create_engine(config_data["timeplus"])
 
 
 def execute_tp_sql(sql):
-    with tp_engine.connect() as connection:
-        # 使用 pandas 的 read_sql_query 直接返回 DataFrame
-        df = pd.read_sql_query(text(sql), connection)
-        return df
+    try:
+        with tp_engine.connect() as connection:
+            # 使用 pandas 的 read_sql_query 直接返回 DataFrame
+            df = pd.read_sql_query(text(sql), connection)
+            return df
+    except Exception as e:
+        print(e)
+        # 创建一个包含错误信息的DataFrame
+        error_df = pd.DataFrame({
+            'error': [str(e)],
+            'sql': [sql]
+        })
+        return error_df
+
 
 def get_tp_tables():
     with tp_engine.connect() as connection:
