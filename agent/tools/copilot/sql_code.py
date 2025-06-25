@@ -59,7 +59,7 @@ code should only be in a md code block:
 ```
 without any additional comments, explanations or cmds !!!
 """
-            print(ans + "No code was generated.")
+            print(ans.content + "No code was generated.")
             continue
         else:
             return result_sql
@@ -68,5 +68,32 @@ def query_database_func(question, df_cols, llm, engine):
     sql = get_sql_code(question, df_cols, llm, engine)
     df = execute_sql(sql, engine)
     return df
+
+
+
+def explain_sql_func(question, sql, llm) -> str:
+    pre_prompt = """
+    Please explain the sql provided code according to the question. 
+    Here is the question:
+    """
+
+    sql_prompt = """
+    Here is the sql code: 
+    """
+
+    end_prompt = """
+    Remind:
+    1. The explanation should be short and clear. short!!!  short!!!  short!!!  short!!!
+    2. You need to tell me what tables and columns are used
+    3. The question may contain other information and steps, please just focus on the data query part and ignore other parts such as draw graph. 
+    
+    For Example:
+    - Join `tableA` with `tableB` on `W`
+    - get `X` and `Y` from `tableA` , get `Z` ans `zz` from `tableB`
+    """
+    final_prompt = pre_prompt + question + sql_prompt + "```sql\n"+sql+"```\n" +end_prompt
+
+    ans = call_llm(final_prompt, llm)
+    return ans.content
 
 

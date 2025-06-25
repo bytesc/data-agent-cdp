@@ -3,8 +3,7 @@ import sqlalchemy
 
 from agent.utils.get_config import config_data
 from agent.utils.llm_access.LLM import get_llm
-from .copilot.sql_code import get_sql_code, query_database_func
-
+from .copilot.sql_code import get_sql_code, query_database_func, explain_sql_func
 
 DATABASE_URL = config_data['pgsql']
 engine = sqlalchemy.create_engine(DATABASE_URL)
@@ -92,4 +91,6 @@ def query_database(question: str, df_cols: str | list = None) -> pd.DataFrame:
     return df
 
 
-
+def explain_sql(question: str, sql: str) -> str:
+    ans = explain_sql_func(question, sql, llm)
+    return ans

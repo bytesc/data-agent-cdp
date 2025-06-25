@@ -11,8 +11,8 @@ from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
 from agent.cot_chat import get_cot_chat
-from agent.tools.custom_tools_def import exe_tp_sql, translate_tp_sql, get_raw_sql
-from agent.tools.tools_def import query_database, draw_graph, draw_echart_file
+from agent.tools.custom_tools_def import exe_tp_sql, translate_tp_sql, get_raw_sql, query_tp_database
+from agent.tools.tools_def import query_database, draw_graph, draw_echart_file, explain_sql
 from agent.utils.pd_to_walker import pd_to_walker
 from utils.get_config import config_data
 
@@ -57,7 +57,7 @@ class ReviewInput(BaseModel):
 
 
 @app.post("/api/ask-agent/")
-async def ask_agent(request: Request, user_input: AgentInput):
+async def ask_agent_api(request: Request, user_input: AgentInput):
     ans, map = cot_agent(user_input.question)
     print(ans)
     if ans:
@@ -80,7 +80,7 @@ async def ask_agent(request: Request, user_input: AgentInput):
 
 
 @app.post("/api/exe-code/")
-async def exe_code(request: Request, user_input: AgentInput):
+async def exe_code_api(request: Request, user_input: AgentInput):
     ans = exe_cot_code(user_input.question)
     print(ans)
     if ans:
@@ -101,7 +101,7 @@ async def exe_code(request: Request, user_input: AgentInput):
 
 
 @app.post("/api/get-code/")
-async def get_code(request: Request, user_input: AgentInput):
+async def get_code_api(request: Request, user_input: AgentInput):
     code = get_cot_code(user_input.question)
     print(code)
     if code:
@@ -122,7 +122,7 @@ async def get_code(request: Request, user_input: AgentInput):
 
 
 @app.post("/api/review/")
-async def get_review(request: Request, user_input: ReviewInput):
+async def get_review_api(request: Request, user_input: ReviewInput):
     ans = get_ans_review(user_input.question, user_input.ans, user_input.code)
     print(ans)
     if ans:
@@ -143,7 +143,7 @@ async def get_review(request: Request, user_input: ReviewInput):
 
 
 @app.post("/api/agent-summary/")
-async def agent_summary(request: Request, user_input: AgentInput):
+async def agent_summary_api(request: Request, user_input: AgentInput):
     ans = get_ans_summary(user_input.question)
     print(ans)
     if ans:
@@ -164,7 +164,7 @@ async def agent_summary(request: Request, user_input: AgentInput):
 
 
 @app.post("/api/cot-chat/")
-async def cot_chat(request: Request, user_input: AgentInput):
+async def cot_chat_api(request: Request, user_input: AgentInput):
     ans = get_cot_chat(user_input.question)
     print(ans)
     if ans:
@@ -184,68 +184,9 @@ async def cot_chat(request: Request, user_input: AgentInput):
     return JSONResponse(content=processed_data)
 
 
-
 @app.post("/api/query-db/")
-async def query_db(request: Request, user_input: AgentInput):
+async def query_db_api(request: Request, user_input: AgentInput):
     ans = query_database(user_input.question)
-    print(ans)
-    if ans:
-        processed_data = {
-            "question": user_input.question,
-            "ans": ans,
-            "type": "success",
-            "msg": "处理成功"
-        }
-    else:
-        processed_data = {
-            "question": user_input.question,
-            "ans": "",
-            "type": "error",
-            "msg": "处理失败，请换个问法吧"
-        }
-    return JSONResponse(content=processed_data)
-
-@app.post("/api/get-raw-sql/")
-async def get_sql(request: Request, user_input: AgentInput):
-    ans = get_raw_sql(user_input.question)
-    if ans:
-        processed_data = {
-            "question": user_input.question,
-            "ans": ans,
-            "type": "success",
-            "msg": "处理成功"
-        }
-    else:
-        processed_data = {
-            "question": user_input.question,
-            "ans": "",
-            "type": "error",
-            "msg": "处理失败，请换个问法吧"
-        }
-    return JSONResponse(content=processed_data)
-
-@app.post("/api/translate-sql/")
-async def translate_sql(request: Request, user_input: AgentInput):
-    ans = translate_tp_sql(user_input.question)
-    if ans:
-        processed_data = {
-            "question": user_input.question,
-            "ans": ans,
-            "type": "success",
-            "msg": "处理成功"
-        }
-    else:
-        processed_data = {
-            "question": user_input.question,
-            "ans": "",
-            "type": "error",
-            "msg": "处理失败，请换个问法吧"
-        }
-    return JSONResponse(content=processed_data)
-
-@app.post("/api/exe-sql/")
-async def exe_sql(request: Request, user_input: AgentInput):
-    ans = exe_tp_sql(user_input.question)
     print(ans)
     if ans:
         processed_data = {
@@ -265,7 +206,7 @@ async def exe_sql(request: Request, user_input: AgentInput):
 
 
 @app.post("/api/get-graph/")
-async def get_graph(request: Request, user_input: AgentInputDict):
+async def get_graph_api(request: Request, user_input: AgentInputDict):
     df = pd.DataFrame.from_dict(user_input.data)
     ans = draw_graph(user_input.question, df)
     if ans:
@@ -286,7 +227,7 @@ async def get_graph(request: Request, user_input: AgentInputDict):
 
 
 @app.post("/api/get-echart/")
-async def get_echart(request: Request, user_input: AgentInputDict):
+async def get_echart_api(request: Request, user_input: AgentInputDict):
     df = pd.DataFrame.from_dict(user_input.data)
     ans = draw_echart_file(user_input.question, df)
     if ans:
@@ -307,7 +248,7 @@ async def get_echart(request: Request, user_input: AgentInputDict):
 
 
 @app.post("/api/get-pygwalker/")
-async def get_pygwalker(request: Request, user_input: AgentInputDict):
+async def get_pygwalker_api(request: Request, user_input: AgentInputDict):
     df = pd.DataFrame.from_dict(user_input.data)
     ans = pd_to_walker(df)
     if ans:
@@ -320,6 +261,110 @@ async def get_pygwalker(request: Request, user_input: AgentInputDict):
     else:
         processed_data = {
             "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
+###############################################################################################
+
+@app.post("/api/query-tp-db/")
+async def query_tp_db_api(request: Request, user_input: AgentInput):
+    ans = query_tp_database(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+@app.post("/api/get-raw-sql/")
+async def get_raw_sql_api(request: Request, user_input: AgentInput):
+    ans = get_raw_sql(user_input.question)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+@app.post("/api/translate-sql/")
+async def translate_tp_sql_api(request: Request, user_input: AgentInput):
+    ans = translate_tp_sql(user_input.question)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
+@app.post("/api/exe-tp-sql/")
+async def exe_tp_sql_api(request: Request, user_input: AgentInput):
+    ans = exe_tp_sql(user_input.question)
+    print(ans)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "ans": "",
+            "type": "error",
+            "msg": "处理失败，请换个问法吧"
+        }
+    return JSONResponse(content=processed_data)
+
+
+@app.post("/api/explain-sql/")
+async def explain_sql_api(request: Request, user_input: ReviewInput):
+    ans = explain_sql(user_input.question, user_input.code)
+    if ans:
+        processed_data = {
+            "question": user_input.question,
+            "code": user_input.code,
+            "ans": ans,
+            "type": "success",
+            "msg": "处理成功"
+        }
+    else:
+        processed_data = {
+            "question": user_input.question,
+            "code": user_input.code,
             "ans": "",
             "type": "error",
             "msg": "处理失败，请换个问法吧"
