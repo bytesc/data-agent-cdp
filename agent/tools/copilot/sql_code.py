@@ -3,7 +3,7 @@ import logging
 from .utils.call_llm_test import call_llm
 from .utils.parse_output import parse_generated_sql_code
 from .utils.read_db import get_rows_from_all_tables, get_table_creation_statements, get_table_and_column_comments
-from .utils.read_tp_db import execute_tp_sql, execute_sql
+from .utils.read_db import execute_sql
 
 # tables = ['class', 'lesson_info',
 #           'semester', 'stu_detail', 'stu_grade',
