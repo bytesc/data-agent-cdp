@@ -88,13 +88,6 @@ def map_sql_code(sql, llm, engine, retries=3):
             return result_sql
 
 
-def query_tp_database_func(question, df_cols, llm, engine):
-    sql = get_sql_code(question, df_cols, llm, engine, get_db_info_prompt=get_tp_db_info_prompt)
-    tp_sql = map_sql_code(sql, llm, engine)
-    df = execute_tp_sql(tp_sql.replace(';', ''))
-    return df
-
-
 def get_raw_sql_func(question, df_cols, llm, engine):
     sql = get_sql_code(question, df_cols, llm, engine, get_db_info_prompt=get_tp_db_info_prompt)
     return sql

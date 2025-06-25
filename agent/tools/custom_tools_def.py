@@ -24,7 +24,7 @@ def translate_tp_sql(sql: str) -> str:
 
 def exe_tp_sql(tp_sql: str) -> pd.DataFrame:
     df = execute_tp_sql(tp_sql.replace(';', ''))
-    return df.to_dict()  # df.to_json()
+    return df  # df.to_json()
 
 
 def query_tp_database(question: str, df_cols: str | list = None) -> pd.DataFrame:

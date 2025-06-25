@@ -2,7 +2,8 @@ import logging
 
 from .utils.call_llm_test import call_llm
 from .utils.parse_output import parse_generated_sql_code
-from .utils.read_db import get_rows_from_all_tables, get_table_creation_statements, get_table_and_column_comments
+from .utils.read_db import get_rows_from_all_tables, get_table_creation_statements, get_table_and_column_comments, \
+    execute_select
 from .utils.read_db import execute_sql
 
 # tables = ['class', 'lesson_info',
@@ -64,10 +65,26 @@ without any additional comments, explanations or cmds !!!
         else:
             return result_sql
 
-def query_database_func(question, df_cols, llm, engine):
-    sql = get_sql_code(question, df_cols, llm, engine)
-    df = execute_sql(sql, engine)
-    return df
+
+def query_database_func(question, df_cols, llm, engine, retries=2):
+    exp = None
+    for i in range(retries):
+        err_msg = ""
+        for j in range(retries):
+            sql = get_sql_code(question + err_msg, df_cols, llm, engine)
+            # print(sql)
+            if sql is None:
+                continue
+            try:
+                result = execute_select(engine, sql)
+                logging.info(f"query_database_SQL: {sql}\nQuestion: {question}\nResult: {result}\n")
+                return result
+            except Exception as e:
+                err_msg = str(e)
+                exp = e
+                print(e)
+                continue
+    return None
 
 
 

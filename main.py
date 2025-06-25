@@ -20,7 +20,7 @@ from utils.get_config import config_data
 from agent.agent import exe_cot_code, get_cot_code, cot_agent
 from agent.summary import get_ans_summary
 from agent.ans_review import get_ans_review
-
+from utils.serializable_dict import serializable_dict
 
 app = FastAPI()
 
@@ -274,8 +274,11 @@ async def get_pygwalker_api(request: Request, user_input: AgentInputDict):
 @app.post("/api/query-tp-db/")
 async def query_tp_db_api(request: Request, user_input: AgentInput):
     ans = query_tp_database(user_input.question)
+    ans = ans.to_dict()
     print(ans)
+
     if ans:
+        ans = serializable_dict(ans)
         processed_data = {
             "question": user_input.question,
             "ans": ans,
@@ -333,16 +336,11 @@ async def translate_tp_sql_api(request: Request, user_input: AgentInput):
 @app.post("/api/exe-tp-sql/")
 async def exe_tp_sql_api(request: Request, user_input: AgentInput):
     ans = exe_tp_sql(user_input.question)
+    ans = ans.to_dict()
     print(ans)
 
-    def json_serial(obj):
-        if isinstance(obj, (datetime, pd.Timestamp)):
-            return obj.isoformat()
-        elif isinstance(obj, date):
-            return obj.isoformat()
-        return obj
     if ans is not None:
-        ans = json.loads(json.dumps(ans, default=json_serial))
+        ans = serializable_dict(ans)
         processed_data = {
                 "question": user_input.question,
                 "ans": ans,
