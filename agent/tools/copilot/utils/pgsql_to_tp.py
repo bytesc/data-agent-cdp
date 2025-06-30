@@ -133,7 +133,7 @@ def get_tp_table_create_audience(engine, tail="1"):
 
             # 构建列定义
             columns = []
-            columns.append(f"{origin_key_column} STRING /* 受众关联键 */")
+            columns.append(f"{origin_key_column} STRING")
 
             # 构建完整的CREATE TABLE语句
             create_sql = f"CREATE TABLE {tp_table_name} (\n"
