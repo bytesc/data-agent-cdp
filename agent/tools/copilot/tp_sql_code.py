@@ -3,19 +3,25 @@ import logging
 from .sql_code import get_sql_code
 from .utils.call_llm_test import call_llm
 from .utils.parse_output import parse_generated_sql_code
-from .utils.pgsql_to_tp import get_tp_table_create
+from .utils.pgsql_to_tp import get_tp_table_create, get_tp_table_create_audience
 from .utils.read_tp_db import execute_tp_sql
-
 
 tables = None
 
 from .utils.pgsql_to_tp import get_table_name_dict, filter_identical_mappings
 
+
 def get_tp_db_info_prompt(engine, simple=False, example=False):
     data_prompt = """
 Here is the structure of the database:
 """
-    data_prompt += "\n```sql\n"+str(get_tp_table_create(engine))+"\n```\n"
+    audience_note = """
+/* The following tables are used to define audience groups. 
+   If queries involve existing user groups, prioritize using the tables below 
+   rather than select again from the tables above!!! */
+    """
+    sql_struct = str(get_tp_table_create(engine)) + audience_note + str(get_tp_table_create_audience(engine))
+    data_prompt += "\n```sql\n" + sql_struct + "\n```\n"
     print(data_prompt)
     return data_prompt
 

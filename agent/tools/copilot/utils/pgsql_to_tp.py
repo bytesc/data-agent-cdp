@@ -66,8 +66,8 @@ def get_tp_table_create(engine, tail="1", table_list=get_tp_tables()):
                 # 构建列定义
                 col_def = f"{col_name} {data_type}"
 
-                # 添加中文数据类型作为注释
-                col_def += f" /* {data_type_name} */"
+                # # 添加中文数据类型作为注释
+                # col_def += f" /* {data_type_name} */"
 
                 # 添加列别名（跳过空字符串、null和纯空格）
                 if col_alias and str(col_alias).strip():
@@ -106,6 +106,57 @@ def get_tp_table_create(engine, tail="1", table_list=get_tp_tables()):
         raise e
     finally:
         conn.close()
+
+
+def get_tp_table_create_audience(engine, tail="1"):
+    conn = engine.connect()
+    try:
+        # 获取所有受众定义
+        audiences_result = conn.execute(sqlalchemy.text("""
+            SELECT 
+                a.audience_id,
+                a.audience_name,
+                a.comment,
+                ar.origin_key_column,
+                ar.origin_table_name
+            FROM cdp_audience a
+            JOIN cdp_audience_relation_master_table ar ON a.audience_id = ar.audience_id
+        """))
+
+        table_definitions = {}
+
+        for audience_row in audiences_result:
+            audience_id, audience_name, comment, origin_key_column, origin_table_name = audience_row
+
+            # 构建表名
+            tp_table_name = f"audience_stream_{audience_id}_{tail}"
+
+            # 构建列定义
+            columns = []
+            columns.append(f"{origin_key_column} STRING /* 受众关联键 */")
+
+            # 构建完整的CREATE TABLE语句
+            create_sql = f"CREATE TABLE {tp_table_name} (\n"
+            create_sql += ",\n".join([f"    {col}" for col in columns])
+            create_sql += "\n);"
+
+            # 添加表注释
+            table_comment = f"{audience_name}"
+            if comment and str(comment).strip():
+                table_comment += f" - {comment.strip()}"
+
+            create_sql += f"\nCOMMENT ON TABLE {tp_table_name} IS '{table_comment}';\n"
+
+            table_definitions[tp_table_name] = create_sql
+
+        return table_definitions
+
+    except Exception as e:
+        print(f"Error generating audience table definitions: {e}")
+        raise e
+    finally:
+        conn.close()
+
 
 
 def get_table_name_dict(engine, tail="1"):
