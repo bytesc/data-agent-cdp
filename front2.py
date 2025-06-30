@@ -66,7 +66,7 @@ def main():
         with put_loading():
             explain_res = ai_agent_api({
                 "question": question,
-                "ans": str(exec_res),
+                "ans": exec_res["ans"],
                 "code": raw_sql # translated_sql
             }, "/api/explain-sql/")
 

@@ -91,6 +91,6 @@ def query_database(question: str, df_cols: str | list = None) -> pd.DataFrame:
     return df
 
 
-def explain_sql(question: str, sql: str) -> str:
-    ans = explain_sql_func(question, sql, llm)
+def explain_sql(question: str, sql: str, ans: pd.DataFrame|None) -> str:
+    ans = explain_sql_func(question, sql, ans, llm)
     return ans

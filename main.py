@@ -53,7 +53,7 @@ class AgentInputDict(BaseModel):
 
 class ReviewInput(BaseModel):
     question: str
-    ans: str
+    ans: dict
     code: str
 
 
@@ -360,7 +360,11 @@ async def exe_tp_sql_api(request: Request, user_input: AgentInput):
 
 @app.post("/api/explain-sql/")
 async def explain_sql_api(request: Request, user_input: ReviewInput):
-    ans = explain_sql(user_input.question, user_input.code)
+    if isinstance(user_input.ans, (dict, list)):
+        df = pd.DataFrame(user_input.ans)
+    else:
+        df = None
+    ans = explain_sql(user_input.question, user_input.code, df)
     if ans:
         processed_data = {
             "question": user_input.question,

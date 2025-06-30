@@ -5,6 +5,7 @@ from .utils.parse_output import parse_generated_sql_code
 from .utils.read_db import get_rows_from_all_tables, get_table_creation_statements, get_table_and_column_comments, \
     execute_select
 from .utils.read_db import execute_sql
+from ...utils.df_process import sample_df_if_large
 
 # tables = ['class', 'lesson_info',
 #           'semester', 'stu_detail', 'stu_grade',
@@ -88,27 +89,47 @@ def query_database_func(question, df_cols, llm, engine, retries=2):
 
 
 
-def explain_sql_func(question, sql, llm) -> str:
+def explain_sql_func(question, sql, ans, llm) -> str:
     pre_prompt = """
-    Please explain the sql provided code according to the question. 
-    Here is the question:
+    Please explain the sql provided code and query result according to the question. 
+    Here is the background question:
     """
 
     sql_prompt = """
     Here is the sql code: 
     """
 
+    data_prompt = """
+    Here is the query result:
+    """
+    if ans is not None and not ans.empty:
+        data_prompt += str(sample_df_if_large(ans))
+    else:
+        data_prompt += """
+        The query return None
+        """
+
     end_prompt = """
+    
     Remind:
-    1. The explanation should be short and clear. short!!!  short!!!  short!!!  short!!!
-    2. You need to tell me what tables and columns are used
-    3. The question may contain other information and steps, please just focus on the data query part and ignore other parts such as draw graph. 
+    1. The explanation should be short and clear. 
+    2. The answer should only have to parts: `Query Process:` and `Query Result`.
+    3. You need to tell me what tables and columns are used in `Query Process`.
+    4. You need to summarize and explain the `Query Result` with only a few sentences.
+    5. The question may contain other information and steps, please just focus on the data query part and ignore other parts such as draw graph. 
+    6. You show give the answer in the same language with the background question.
     
     For Example:
+    
+    Query Process:
     - Join `tableA` with `tableB` on `W`
-    - get `X` and `Y` from `tableA` , get `Z` ans `zz` from `tableB`
+    - get `X` and `Y` as `hello` from `tableA` , get `Z` ans `zz` from `tableB`
+    
+    Query Result:
+    The result shows ...
+    
     """
-    final_prompt = pre_prompt + question + sql_prompt + "```sql\n"+sql+"```\n" +end_prompt
+    final_prompt = pre_prompt + question + sql_prompt + "```sql\n"+sql+"```\n" + data_prompt + end_prompt
 
     ans = call_llm(final_prompt, llm)
     return ans.content
